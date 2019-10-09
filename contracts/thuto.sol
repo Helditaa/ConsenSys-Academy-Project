@@ -148,19 +148,17 @@ contract thuto is ERC721Metadata {
         userAddresses[msg.sender] = id - 1;
     }
 
-    /// @notice This function creates a publication on the system, with blank arrays for publication bids and owners,
+    /// @notice This function creates a publication on the system, with blank arrays for publication bids and owners
     /// @notice since no one has bidded for or bought a licence yet
     /// @dev The researcher only specifies the flat rate if they have chosen not to auction the work
     /// @dev Add instance to the respective arrays
 
-    function createPublication(
+    function addSession(
         string memory _session_uri,
         bool _isAuction,
         bool _isRunning,
-        uint256 _tutoring_price,
-        uint256[] memory _contributors,
-        uint256[] memory _contributors_weightings) public {
-        require(bytes(_session_uri).length > 0, "Publication URI should not be empty.");
+        uint256 _tutoring_price) public {
+        require(bytes(_session_uri).length > 0, "Session URI should not be empty.");
         require(userAddresses[msg.sender] != 0, "User address is not registered.");
         if(_isAuction) {
             require(_tutoring_price == 0, "Should not specify sell price for auction.");
@@ -170,50 +168,48 @@ contract thuto is ERC721Metadata {
         }
         uint256 _tutor_Id = userAddresses[msg.sender];
         uint256[] memory _session_bids;
-        Publication memory _publication = Publication(
+        Session memory _session = Session(
             _tutor_Id,
             _session_uri,
             _session_bids,
             _isAuction,
             _isRunning,
-            _tutoring_price,
-            _contributors,
-            _contributors_weightings);
-        uint256 _id = publications.push(_publication);
+            _tutoring_price;
+        uint256 _id = sessions.push(_session);
         sessionOwners[_tutor_Id].push(_id - 1);
 
         emit NewSession(msg.sender,_session_uri, _isAuction, _tutoring_price);
     }
 
-    /// @notice This function creates a new bid for a particular publication
+    /// @notice This function creates a new bid for a particular session
     /// @param _offer for the research
-    /// @param _session_Id is the index for the publication Id
-    /// @dev The bidder should only be able to submit a bid if the publication's pricing structure is an auction and the auction is running
+    /// @param _session_Id is the index for the session Id
+    /// @dev The bidder should only be able to submit a bid if the session's pricing structure is an auction and the auction is running
     /// @dev By default the bid will have a status of Pending until it is accepted or rejected by the author
-    /// @dev If the author has specified a flat rate, the buyer doesn't submit a bid but just sends the funds.
-    /// @dev The funds sent should match the sale price specified by the author.
-    /// @dev This 'bid' has a status of sale because the author does not need to evaluate and accept/reject these bids.
+    /// @dev If the author has specified a flat rate, the buyer doesn't submit a bid but just sends the funds
+    /// @dev The funds sent should match the sale price specified by the author
+    /// @dev This 'bid' has a status of sale because the author does not need to evaluate and accept/reject these bids
     /// @dev Transfer Dai from buyer to seller
-    /// @dev parameters of licence design: student_Id, publication id, bid_id
+    /// @dev parameters of licence design: student_Id, session id, bid_id
     function makeBid(uint256 _offer, uint256 _session_Id) public {
-        require(publications[_session_Id].tutor_Id != 0, "Publication not enlisted.");
+        require(sessions[_session_Id].tutor_Id != 0, "Session not enlisted.");
         require(userAddresses[msg.sender] != 0, "Bidder address is not registered.");
-        if(publications[_session_Id].isAuction) {
-            require(publications[_session_Id].isRunning, "Auction is not running.");
+        if(sessions[_session_Id].isAuction) {
+            require(sessions[_session_Id].isRunning, "Auction is not running.");
             uint256 _id = bids.push(Bid(_offer, bidStatus.Pending, _session_Id, userAddresses[msg.sender]));
-            publications[_session_Id].session_bids.push(_id - 1);
+            sessions[_session_Id].session_bids.push(_id - 1);
             bidOwners[userAddresses[msg.sender]].push(_id - 1);
 
             emit NewBid(msg.sender, _session_Id, _offer);
         }
-        if(!publications[_session_Id].isAuction) {
-            require(_offer == publications[_session_Id].tutoring_price, "Incorrect funds sent.");
+        if(!sessions[_session_Id].isAuction) {
+            require(_offer == sessions[_session_Id].tutoring_price, "Incorrect funds sent.");
             uint256 _id = bids.push(Bid(_offer, bidStatus.Sale, _session_Id, userAddresses[msg.sender])) - 1;
-            publications[_session_Id].session_bids.push(_id);
+            sessions[_session_Id].session_bids.push(_id);
             bidOwners[userAddresses[msg.sender]].push(_id);
 
             require(daiContract.allowance(msg.sender, address(this)) >= _offer, "Insufficient fund allowance");
-            address publisherAddress = users[publications[_session_Id].tutor_Id].owned_address;
+            address publisherAddress = users[sessions[_session_Id].tutor_Id].owned_address;
             require(daiContract.transferFrom(msg.sender, publisherAddress, _offer), "dai Transfer failed");
 
             uint256 _licence_Id = licences.push(LicenceDesign(bids[_id].owner_Id, _session_Id, _id));
@@ -231,9 +227,9 @@ contract thuto is ERC721Metadata {
     /// @param _id is the bid Id
     function acceptBid(uint256 _id) public {
         uint256 _session_Id = bids[_id].session_Id;
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id, "User not the author of this publication");
-        require(publications[_session_Id].isAuction, "Publication not an auction.");
-        require(publications[_session_Id].isRunning, "Auction is not running.");
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the author of this publication");
+        require(sessions[_session_Id].isAuction, "Publication not an auction.");
+        require(sessions[_session_Id].isRunning, "Auction is not running.");
         bids[_id].status = bidStatus.Accepted;
         
         uint256 _licence_Id = licences.push(LicenceDesign(bids[_id].owner_Id, _session_Id, _id));
@@ -248,9 +244,9 @@ contract thuto is ERC721Metadata {
     /// @param _id is the bid Id
     function rejectBid(uint256 _id) public {
         uint256 _session_Id = bids[_id].session_Id;
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id, "User not the author of this publication");
-        require(publications[_session_Id].isAuction, "Publication not an auction.");
-        require(publications[_session_Id].isRunning, "Auction not running.");
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the author of this publication");
+        require(sessions[_session_Id].isAuction, "Publication not an auction.");
+        require(sessions[_session_Id].isRunning, "Auction not running.");
         bids[_id].status = bidStatus.Rejected;
 
         emit RejectedBid(msg.sender,_id);
@@ -260,10 +256,10 @@ contract thuto is ERC721Metadata {
     /// @param _id is the bid Id
     function cancelBid(uint256 _id) public {
         uint256 _session_Id = bids[_id].session_Id;
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id
         || userAddresses[msg.sender] == bids[_id].owner_Id, "User not the author of this publication");
-        require(publications[_session_Id].isAuction, "Publication not an auction.");
-        require(publications[_session_Id].isRunning, "Auction not running.");
+        require(sessions[_session_Id].isAuction, "Publication not an auction.");
+        require(sessions[_session_Id].isRunning, "Auction not running.");
         bids[_id].status = bidStatus.Cancelled;
 
         emit CancelledBid(msg.sender,_id);
@@ -273,10 +269,10 @@ contract thuto is ERC721Metadata {
     /// @param _session_Id publication id number
     /// @param _tutoring_price for the research
     function changeToSale(uint256 _session_Id, uint256 _tutoring_price) public {
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id, "User not the author of this publication");
-        require(publications[_session_Id].isAuction, "Publication is not an auction");
-        publications[_session_Id].tutoring_price = _tutoring_price;
-        publications[_session_Id].isAuction = false;
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the author of this publication");
+        require(sessions[_session_Id].isAuction, "Publication is not an auction");
+        sessions[_session_Id].tutoring_price = _tutoring_price;
+        sessions[_session_Id].isAuction = false;
 
         emit ChangeToSale(msg.sender, _session_Id, _tutoring_price);
     }
@@ -284,10 +280,10 @@ contract thuto is ERC721Metadata {
     /// @notice This function allows the auctioneer to change from a sale to an auction
     /// @param _session_Id publication id number
     function changeToAuction(uint256 _session_Id) public {
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id, "User not the author of this publication");
-        require(!publications[_session_Id].isAuction, "Publication is already on auction");
-        publications[_session_Id].tutoring_price = 0;
-        publications[_session_Id].isAuction = true;
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the author of this publication");
+        require(!sessions[_session_Id].isAuction, "Publication is already on auction");
+        sessions[_session_Id].tutoring_price = 0;
+        sessions[_session_Id].isAuction = true;
 
         emit ChangeToAuction(msg.sender, _session_Id);        
     }
@@ -296,9 +292,9 @@ contract thuto is ERC721Metadata {
     /// @param _session_Id publication id number
     /// @param _tutoring_price for the research
     function changeSellPrice(uint256 _session_Id, uint256 _tutoring_price) public {
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id, "User not the author of this publication");
-        require(!publications[_session_Id].isAuction, "Publication is on auction.");
-        publications[_session_Id].tutoring_price = _tutoring_price;
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the author of this publication");
+        require(!sessions[_session_Id].isAuction, "Publication is on auction.");
+        sessions[_session_Id].tutoring_price = _tutoring_price;
 
         emit ChangeSellPrice(msg.sender, _session_Id, _tutoring_price);        
 
@@ -307,16 +303,16 @@ contract thuto is ERC721Metadata {
     /// @notice This function allows the auctioneer to change the running status
     /// @param _session_Id publication id number
     function changeRunningStatus(uint256 _session_Id) public {
-        require(userAddresses[msg.sender] == publications[_session_Id].tutor_Id, "User not the author of this publication");
-        publications[_session_Id].isRunning = !publications[_session_Id].isRunning;
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the author of this publication");
+        sessions[_session_Id].isRunning = !sessions[_session_Id].isRunning;
 
-        emit ChangeRunningStatus(msg.sender, _session_Id, publications[_session_Id].isRunning);        
+        emit ChangeRunningStatus(msg.sender, _session_Id, sessions[_session_Id].isRunning);        
 
     }
 
-    /// @return This function allows anyone to get the list of publications based on the address of the publisher
+    /// @return This function allows anyone to get the list of sessions based on the address of the publisher
     /// @param _address eth address for the user
-    function getPublications(address _address) public view returns(uint256[] memory) {
+    function getSessions(address _address) public view returns(uint256[] memory) {
         uint256 _tutor_Id = userAddresses[_address];
         return sessionOwners[_tutor_Id];
     }
