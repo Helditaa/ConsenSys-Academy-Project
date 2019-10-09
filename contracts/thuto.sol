@@ -134,7 +134,6 @@ contract thuto is ERC721Metadata {
     constructor(address _daiContractAddress) public ERC721Metadata("UniCoin Licence", "UNIC"){
         users.push(User(address(0), ""));
         licences.push(LicenceDesign(0, 0, 0));
-
         daiContract = ERC20(_daiContractAddress);
     }
 
