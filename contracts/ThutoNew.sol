@@ -15,31 +15,30 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
 
 /// @notice contract begins here
 contract thuto is ERC721Metadata {
-    /// @notice Creates a struct for tutors of the plaform, needs their Ethereum address and profile URL
+    /// @notice Creates a struct for users of the plaform, needs their Ethereum address and profile URL
     struct User {
         address owned_address;
         string profile_uri;
     }
-    /// @notice Creates an array of tutors that a registered
-    Tutor[] public tutors;
+    /// @notice Creates an array of users that a registered
+    User[] public users;
 
-    /// @notice The mapping below maps all tutors' addresses to their tutorID
-    mapping (address => uint256) public tutorAddresses ;
+    /// @notice The mapping below maps all users' addresses to their userID
+    mapping (address => uint256) public userAddresses ;
 
-    /// @notice Creates tutor defined type
+    /// @notice Creates session defined type
     enum sessionStatus {Pending, Accepted, Rejected, Sale, Cancelled}
 
-    /// @notice Creates a struct for all bids, takes in the offer (amount of the bid), one of the enum parameters, session Id and owner Id
+    /// @notice Creates a struct for all requests for tutoring, one of the enum parameters, session Id and student Id
     struct Request {
-        uint256 offer;
         sessionStatus status;
         uint256 session_Id;
-        uint256 owner_Id; /// @dev owner of the bid
+        uint256 student_Id; /// @dev student of the request
     }
     /// @notice Creates an array of bids that have been placed
     Request[] public requests;
 
-    /// @notice The mapping below maps all requesters' IDs to their tutorID
+    /// @notice The mapping below maps all requesters' IDs to their studentId
     mapping(uint256 => uint256[]) public requestOwners;
 
     /// @notice Creates a struct for all sessions
@@ -59,24 +58,24 @@ contract thuto is ERC721Metadata {
     /// @notice Creates an array of sessions for every tutoring session available
     Session[] public sessions;
 
-    /// @notice The mapping below will map the addresses of all the successful bidders' addresses to the ID of their owned tutors, session owners
+    /// @notice The mapping below will map the addresses of all the successful bidders' addresses to the ID of their owned users, session owners
     mapping(uint256 => uint256[]) public sessionOwners;
 
     /// @notice Creates a struct for licencing
     /// @param student_Id of each tutoring session buyer
     /// @param session_Id of the tutoring session being payed for
     /// @param request_Id The bid's Id for the session
-    struct LicenceDesign {
+    struct LessonDesign {
         uint256 student_Id;
         uint256 session_Id;
         uint256 request_Id;
     }
-    /// @notice Creates an array of purchased licences
-    LicenceDesign[] public licences;
+    /// @notice Creates an array of accepted sessions
+    LessonDesign[] public lessons;
     /// @notice Mapping of licence Id to get the licence owners
-    mapping(uint256 => uint256[]) public licenceOwners;
+    mapping(uint256 => uint256[]) public requestOwners;
     /// @notice Mapping of licence Id to get the session Id
-    mapping(uint256 => uint256[]) public sessionLicences;
+    mapping(uint256 => uint256[]) public sessionRequests;
 
     event newSession(
         address indexed _from,
@@ -105,7 +104,7 @@ contract thuto is ERC721Metadata {
         uint256 _id
     );
 
-    event ChangeSellPrice(
+    event ChangeTutoringPrice(
         address indexed _from,
         uint256 indexed _session_Id,
         uint256 _tutoring_price
@@ -119,23 +118,23 @@ contract thuto is ERC721Metadata {
 
     /// @dev ERC20 is now daiContract
     ERC20 daiContract;
-    /// @dev The constructor below reserves tutor 0 for all unregistered tutors
+    /// @dev The constructor below reserves tutor 0 for all unregistered users
     /// @param _daiContractAddress DAI contract address
     constructor(address _daiContractAddress) public ERC721Metadata("UniCoin Licence", "UNIC"){
-        tutors.push(Tutor(address(0), ""));
-        licences.push(LicenceDesign(0, 0, 0));
+        users.push(User(address(0), ""));
+        lessons.push(LessonDesign(0, 0, 0));
         daiContract = ERC20(_daiContractAddress);
     }
 
     /// @notice This function registers a tutor on the platform by taking in their profile URL
     /// @param _profile_uri tutor profile url
-    /// @dev If the tutor's address is in position 0 of the tutorAddresses array, they are unregistered
+    /// @dev If the tutor's address is in position 0 of the userAddresses array, they are unregistered
     /// @dev Create an instance of the tutor and add the Id to their address
-    function registerTutor(string memory _profile_uri) public {
+    function registerUser(string memory _profile_uri) public {
         require(bytes(_profile_uri).length > 0, "Profile URI should not be empty.");
-        require(tutorAddresses[msg.sender]==0,"Tutor already registered.");
-        uint256 id = tutors.push(Tutor(msg.sender,_profile_uri));
-        tutorAddresses[msg.sender] = id - 1;
+        require(userAddresses[msg.sender]==0,"Tutor already registered.");
+        uint256 id = users.push(User(msg.sender,_profile_uri));
+        userAddresses[msg.sender] = id - 1;
     }
 
     /// @notice This function creates a session on the system, with blank arrays for session requests and owners
@@ -148,10 +147,10 @@ contract thuto is ERC721Metadata {
         bool _isRunning,
         uint256 _tutoring_price, string _details) public {
         require(bytes(_session_uri).length > 0, "Session URI should not be empty.");
-        require(tutorAddresses[msg.sender] != 0, "Tutor address is not registered.");
+        require(userAddresses[msg.sender] != 0, "Tutor address is not registered.");
         require(_tutoring_price > 0, "Sell price not specified.");
 
-        uint256 _tutor_Id = tutorAddresses[msg.sender];
+        uint256 _tutor_Id = userAddresses[msg.sender];
         uint256[] memory _session_requests;
         Session memory _session = Session(
             _tutor_Id,
@@ -178,12 +177,12 @@ contract thuto is ERC721Metadata {
     /// @dev parameters of licence design: student_Id, session id, request_Id
     function requestSession(uint256 _session_Id, string _details) public {
         require(sessions[_session_Id].tutor_Id != 0, "Session not enlisted.");
-        require(tutorAddresses[msg.sender] != 0, "Student address is not registered.");
+        require(userAddresses[msg.sender] != 0, "Student address is not registered.");
 
-        uint256 _licence_Id = licences.push(LicenceDesign( [_id].owner_Id, _session_Id, _id));
-        licenceOwners[Reques[_id].owner_Id].push(_licence_Id);
-        sessionLicences[_session_Id].push(_licence_Id);
-        _mint(tutors[bids[_id].owner_Id].owned_address, _licence_Id);
+        uint256 _lesson_Id = lessons.push(LessonDesign( [_id].student_I, _session_Id, _id));
+        requestOwners[Request[_id].student_Id  ].push(_lesson_Id);
+        sessionRequests[_session_Id].push(_lesson_Id);
+        _mint(users[bids[_id].student_Id ].owned_address, _lesson_Id);
 
         emit newRequest(msg.sender, _session_Id, _details);
         }
@@ -193,16 +192,17 @@ contract thuto is ERC721Metadata {
     /// @dev parameters of licence design: student_Id, session id, request_Id
     /// @notice This function allows the tutor to reject the bids
     /// @param _id is the bid Id
-    function acceptRequest(uint256 _id) public {
+    /// @param _details details on the session agreement
+    function acceptRequest(uint256 _id, string _details) public {
         uint256 _session_Id = Requests[_id].session_Id;
-        require(tutorAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
         require(sessions[_session_Id].isRunning, "Session is not running");
         Requests[_id].status = sessionStatus.Accepted;
 
-        uint256 _licence_Id = licences.push(LicenceDesign(Requests[_id].owner_Id, _session_Id, _id));
-        licenceOwners[bids[_id].owner_Id].push(_licence_Id);
-        sessionLicences[_session_Id].push(_licence_Id);
-        _mint(tutors[Requests[_id].owner_Id].owned_address, _licence_Id);
+        uint256 _lesson_Id = lessons.push(LessonDesign(Requests[_id].student_Id, _session_Id, _id));
+        requestOwners[bids[_id].student_Id].push(_lesson_Id);
+        sessionRequests[_session_Id].push(_lesson_Id);
+        _mint(users[Requests[_id].student_Id ].owned_address, _lesson_Id);
 
         emit acceptedRequest(msg.sender,_id);
     }
@@ -211,7 +211,7 @@ contract thuto is ERC721Metadata {
     /// @param _id is the Request Id
     function rejectRequest(uint256 _id) public {
         uint256 _session_Id = requests[_id].session_Id;
-        require(tutorAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
         require(sessions[_session_Id].isRunning, "Session not running");
         requests[_id].status = sessionStatus.Rejected;
 
@@ -222,7 +222,7 @@ contract thuto is ERC721Metadata {
     /// @param _id is the bid Id
     function cancelRequest(uint256 _id) public {
         uint256 _session_Id = requests[_id].session_Id;
-        require(tutorAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
         require(sessions[_session_Id].isRunning, "Session not running");
         requests[_id].status = sessionStatus.Cancelled;
 
@@ -233,17 +233,17 @@ contract thuto is ERC721Metadata {
     /// @notice This function allows the tutor to change the sell price
     /// @param _session_Id session id number
     /// @param _tutoring_price for the session
-    function changeSellPrice(uint256 _session_Id, uint256 _tutoring_price) public {
-        require(tutorAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
+    function changeTutoringPrice(uint256 _session_Id, uint256 _tutoring_price) public {
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
         sessions[_session_Id].tutoring_price = _tutoring_price;
 
-        emit ChangeSellPrice(msg.sender, _session_Id, _tutoring_price);
+        emit ChangeTutoringPrice(msg.sender, _session_Id, _tutoring_price);
     }
 
     /// @notice This function allows the tutor to change the running status
     /// @param _session_Id session id number
     function changeRunningStatus(uint256 _session_Id) public {
-        require(tutorAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
+        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
         sessions[_session_Id].isRunning = !sessions[_session_Id].isRunning;
 
         emit ChangeRunningStatus(msg.sender, _session_Id, sessions[_session_Id].isRunning);
@@ -252,13 +252,13 @@ contract thuto is ERC721Metadata {
     /// @return This function allows anyone to get the list of sessions based on the address of the tutor
     /// @param _address eth address for the tutor
     function getSessions(address _address) public view returns(uint256[] memory) {
-        uint256 _tutor_Id = tutorAddresses[_address];
+        uint256 _tutor_Id = userAddresses[_address];
         return sessionOwners[_tutor_Id];
     }
 
     /// @return This function allows anyone to get the list of requests based on address of the tutor
     function getRequests(address _address) public view returns(uint256[] memory) {
-        uint256 _userAddress = tutorAddresses[_address];
+        uint256 _userAddress = userAddresses[_address];
         return requestOwners[_userAddress];
     }
 
@@ -292,18 +292,18 @@ contract thuto is ERC721Metadata {
         _details);
     }
 
-    /// @return get the licences per owner
+    /// @return get the lessons per owner
     /// @param _address of the account holder
-    function getLicenceForAddress(address _address) public view returns(uint256[] memory) {
-        uint256 _userNumber = tutorAddresses[_address];
-        return licenceOwners[_userNumber];
+    function getLessonForAddress(address _address) public view returns(uint256[] memory) {
+        uint256 _userNumber = userAddresses[_address];
+        return requestOwners[_userNumber];
     }
 
-    function getLicence(uint256 _licenceId) public view returns(uint256, uint256, uint256){
-        LicenceDesign memory _licence = licences[_licenceId];
+    function getLessons(uint256 _lessonId) public view returns(uint256, uint256, uint256){
+        LessonDesign memory _lesson = lessons[_lessonId];
         return (
-        _licence.student_Id,
-        _licence.session_Id,
-        _licence.request_Id);
+        _lesson.student_Id,
+        _lesson.session_Id,
+        _lesson.request_Id);
     }
 }
