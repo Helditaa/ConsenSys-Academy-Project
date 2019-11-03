@@ -12,7 +12,7 @@ const Thuto = artifacts.require("./Thuto.sol");
 const Erc20 = artifacts.require("./ERC20.sol");
 
 // Libraries
-require("chai")
+require("chai") // assertion library
     .use(require("chai-as-promised"))
     .use(require("chai-bignumber")(BigNumber))
     .should();
