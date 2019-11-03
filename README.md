@@ -7,7 +7,7 @@ Thuto is a decentralized platform that serves to connect students to tutors and 
 
 To run the project:
 
-1) Clone the repo, on an application such as, gitKraken
+1) Clone the repo, on an application such as, [gitKraken](https://www.gitkraken.com/download)
 2) Download [Ganache](https://www.trufflesuite.com/ganache)
 3) Install [Homebrew](http://osxdaily.com/2018/03/07/how-install-homebrew-mac-os/)
 4) Install [NPM & Node](https://treehouse.github.io/installation-guides/mac/node-mac.html)
