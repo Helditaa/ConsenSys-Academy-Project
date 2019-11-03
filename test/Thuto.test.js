@@ -5,17 +5,11 @@ const {
 const {
     assertRevert
 } = require('./helpers/assertRevert');
-const {
-    sendTransaction
-} = require('./helpers/sendTransaction');
-const advanceBlock = require("./helpers/advanceToBlock");
-const {
-    increaseTimeTo,
-    duration
-} = require('./helpers/increaseTime');
-const latestTime = require("./helpers/latestTime");
-const _ = require("lodash");
 const BigNumber = web3.BigNumber;
+
+// Contracts to be used
+const Thuto = artifacts.require("./Thuto.sol");
+const Erc20 = artifacts.require("./ERC20.sol");
 
 // Libraries
 require("chai")
@@ -23,34 +17,32 @@ require("chai")
     .use(require("chai-bignumber")(BigNumber))
     .should();
 
-// Contracts
-const Thuto = artifacts.require("./Thuto.sol");
-const Erc20 = artifacts.require("./ERC20.sol");
 
 contract("Thuto", (accounts) => {
-    const registryOwner = accounts[0]
-    const tokenOwner = accounts[1]
-    const tutor = accounts[2]
-    const student = accounts[3]
-    const randomAddress = accounts[4]
+    // Setting up different Address Accounts for testing
+    const tokenOwner = accounts[0]
+    const tutor = accounts[1]
+    const student = accounts[2]
+    const randomAddress = accounts[3]
 
-    const exampleUserProfileURI = "zyxwvusrtjbgdfjbguvbdfiugvgf"
-    const exampleSessionURI = "abcdeftusudgiusfdhiusbsudhus"
+    // Creating variables
+    const exampleUserProfileURI = "itismeProfile"
+    const exampleSessionURI = "SessionitisI"
     const exampleDetails = "timetimetime"
 
+    // Setting up an instance of valid session
     const validSession = {
         session_uri: exampleSessionURI,
         isRunning: true,
-        tutoring_price: 100,
+        tutoring_price: 150,
         details: exampleDetails
     }
 
-    // Initialize session and bid counts
+    // Initialize session and request counts
     let noSessions = 0;
     let noRequests = 0;
 
-    before(async function () {
-        // Deploy an instance of the registry
+    before(async function () { 
         // Creates ERC20s to use in testing
         daiContract = await Erc20.new({
             from: tokenOwner
@@ -60,72 +52,73 @@ contract("Thuto", (accounts) => {
         await daiContract.mint(student, 10000, {
             from: tokenOwner
         });
+        // Deploy an instance of the registry
+        registry = await Thuto.new(daiContract.address, {
+            from: tutor
+        });
 
     });
 
     beforeEach(async function () {
-
     })
-    // Tests correct registration of users
+    // Tests correct registration of users. Valid user credentials need to be provided.
     context("Register User", function () {
         it("Can register a new user", async () => {
+            // Call out registerUser function
             await registry.registerUser(exampleUserProfileURI, {
                 from: tutor
             })
 
-            let userNumber = (await registry.userAddresses(tutor)).toNumber()
-            assert(userNumber, 1, "Initial user number not set correctly")
+            // Get user Id
+            let userID = (await registry.userAddresses(tutor)).toNumber()
+            assert(userID, 1, "Initial user number not set correctly")
 
-            let addedUser = await registry.users(userNumber)
-            assert(addedUser.owned_address, tutor, "tutor address not set")
-            assert(addedUser.profile_uri, exampleUserProfileURI, "Profile URI not set")
+            // Initialize new user
+            let newUser = await registry.users(userID)
+            assert(newUser.owned_address, tutor, "tutor address not set")
+            assert(newUser.profile_uri, exampleUserProfileURI, "Profile URI not set")
         });
+
         it("Reverts if invalid user added", async () => {
             // Should fail if no user name added
             await assertRevert(registry.registerUser("", {
                 from: tutor
             }), EVMRevert)
 
-            // Then check reverts if same user tries to register
+            // Then check reverts if same user tries to register again
             await assertRevert(registry.registerUser(exampleUserProfileURI, {
                 from: tutor
             }), EVMRevert)
         });
     })
 
-    //Tests correct creation of sessions
-    context("Create session", function () {
+    //Tests if tutor can add sessiion correctly. Test ensures that only registered users can add a session, and that session should have the necessary minimum information
+    context("Add session", function () {
         it("Can correctly add new session", async () => {
+            // Add a session to use in testing
             await registry.addSession(validSession.session_uri,
                 validSession.isRunning,
                 validSession.tutoring_price,
                 validSession.details, {
                     from: tutor
                 })
+            
+            // Increase number of sessions by 1
             noSessions += 1;
+
             let session = await registry.sessions(noSessions   - 1)
 
+            // Ensure that the following give the correct outcome
             assert(session.tutor_Id.toNumber(), 1, "Author Id not set")
             assert(session.session_uri, exampleSessionURI, "session URI not set")
-            assert(session.session_requests == validSession.session_requests, "isAuction not set")
-            assert(session.isRunning == validSession.isRunning, "isRunning not set")
-            assert(session.tutoring_price.toNumber(), validSession.tutoring_price, "sellPrice not set")
-            assert(session.details, validSession.details, "sellPrice not set")
-
-            let allsessionInfo = await registry.getSession(noSessions  - 1)
-            // console.log("HERE")
-            // console.log(allsessionInfo)
+            assert(session.isRunning == validSession.isRunning, "isRunning for session not set")
+            assert(session.tutoring_price.toNumber(), validSession.tutoring_price, "Tutoring price not set")
+            assert(session.details, validSession.details, "No details of session specified")
 
         });
 
         it("Reverts if bad user input", async () => {
-            // Should revert if sale method is auction but a price is specified
-            await assertRevert(registry.addSession(validSession.session_uri,
-                true, validSession.isRunning, validSession.tutoring_price, validSession.details, {
-                    from: tutor
-                }), EVMRevert)
-
-            // Should revert if sale method is flat price but no price specified
+            // Should revert if no tutoring price is specified
             await assertRevert(registry.addSession(validSession.session_uri,
                 validSession.isRunning, 0, validSession.details, {
                     from: tutor
@@ -145,7 +138,7 @@ contract("Thuto", (accounts) => {
         });
     })
 
-    // Tests for correct request
+    // Tests for correct request being made by students for a session provided by the tutor. Only registered users can do so.
     context("Make a request", function () {
         it("Can correctly make a request", async () => {
             // Register the student
@@ -156,17 +149,21 @@ contract("Thuto", (accounts) => {
             // Register the session: session 2 (index 1)
             await registry.addSession(validSession.session_uri,
                 validSession.isRunning,
-                0,
+                validSession.tutoring_price,
                 validSession.details, {
                     from: tutor
                 })
+
+            // Increment number of sessions
             noSessions += 1;
-            let session = await registry.sessions(noSessions   - 1)
+
+            let session = await registry.sessions(noSessions - 1)
 
             // Make the request
-            await registry.newSession(100, noSessions - 1, {
+            await registry.requestSession(noSessions - 1, validSession.details, {
                 from: student
             })
+
             noRequests += 1;
             let request = await registry.requests(noRequests - 1)
 
@@ -176,148 +173,116 @@ contract("Thuto", (accounts) => {
 
         });
 
-        // it("Can correctly make a sale", async () => {
-
-        //     await registry.addSession(validSession.session_uri,
-        //         validSession.isRunning,
-        //         validSession.tutoring_price,
-        //         validSession.details, {
-        //             from: tutor
-        //         })
-        //     // noSessions  = 3
-        //     noSessions += 1;
-        //     let session = await registry.sessions(noSessions   - 1)
-        //     // Successfully mint a token
-        //     let nftTokenBalance = await registry.balanceOf(student)
-
-        //     let balanceBefore = await daiContract.balanceOf(student);
-        //     // breaks on line below
-        //     await registry.requestSession(100, 2, {
-        //         from: student
-        //     })
-
-        //     let balanceAfter = await daiContract.balanceOf(student);
-        //     assert(balanceAfter,balanceBefore-100,"ERC20 token balance not changed correctly")
-
-        //     noRequests += 1;
-        //     let bid = await registry.bids(noRequests - 1)
-
-        //     // should now assert that status is sale
-        //     assert(bid.offer.toNumber(), 100, "Bid price incorrect")
-        //     assert(bid.status, "Sale", "Bid status incorrect")
-        //     assert(bid.session_Id, noSessions  - 1, "session ID incorrect")
-        //     assert(bid.student_Id, 1, "student ID incorrect")
-        //     let nftTokenBalance2 = await registry.balanceOf(student)
-        //     assert(nftTokenBalance2, nftTokenBalance + 1, "NFT balance not correct")
-        // })
-
         it("Reverts if bad user input", async () => {
-            // If bids with a non-running auction
+            // If requests with a non-running session
             await registry.addSession(validSession.session_uri,
-                true,
                 false,
-                0, {
+                validSession.tutoring_price,
+                validSession.details, {
                     from: tutor
                 })
-            noSessions += 1;
-            let session = await registry.sessions(noSessions   - 1)
+            noSessions += 1;       
 
-            await assertRevert(registry.makeBid(100, noSession - 1, {
+            await assertRevert(registry.requestSession( noSessions -1, validSession.details, {
                 from: student
             }), EVMRevert)
 
-            // If sends incorrect funds to flat-rate session
-            await assertRevert(registry.makeBid(101, 0, {
-                from: student
-            }), EVMRevert)
-
-            // If bidder is unregistered
-            await assertRevert(registry.makeBid(100, 1, {
+            // If student is unregistered
+            await assertRevert(registry.requestSession( noRequests, validSession.details, {
                 from: randomAddress
             }), EVMRevert)
-
-            // if session isn't listed
-            // need to do this - see line 83 of Thuto.sol
 
         })
     })
 
-    // Tests for correct implementation of request acceptance/rejections or cancellation
+    // Tests for correct implementation of request acceptance/rejections or cancellation sessions. Only students can cancel, only tutors can accept and reject requests.
     context("Accepting/rejecting/cancelling a request", function () {
         it("Can accept a request", async () => {
-            // Allocation of token to student, if token balance is not adjusted then rejects
-            let nftTokenBalance = await registry.balanceOf(student)
-            await registry.acceptRequest(0, validSession.details, {
-                from: tutor
-            })
-            let bid = await registry.requests(0)
-            assert(bid.status, "Accepted", "Bid status not changed")
-            let nftTokenBalance2 = await registry.balanceOf(student)
-            assert(nftTokenBalance2, nftTokenBalance + 1, "Token balance not set correctly")
-        })
-
-        it("Can reject a bid", async () => {
             await registry.addSession(validSession.session_uri,
                 true,
-                true,
-                0, {
+                validSession.tutoring_price,
+                validSession.details, {
                     from: tutor
                 })
-            // Rejects bid if status is not changed
             noSessions += 1;
-            let session = await registry.sessions(noSessions   - 1)
-            await registry.makeBid(102, noSessions - 1, {
-                from: student
-            })
-            noRequests += 1;
-            await registry.rejectBid(noRequests - 1, {
+            
+            // Allocation of token to student, if token balance is not adjusted then rejects
+            let nftTokenBalance = await registry.balanceOf(student)
+            await registry.acceptRequest(0, {
                 from: tutor
             })
-            let bid = await registry.bids(noRequests - 1)
-            assert(bid.status, "Rejected", "Bid status not changed")
+            let request = await registry.requests(0)
+            assert(request.status, "Accepted", "Request status not changed")
+            let nftTokenBalanceNew = await registry.balanceOf(student)
+            assert(nftTokenBalanceNew, nftTokenBalance + 1, "Token balance not set correctly")
+
+        })
+
+        it("Can reject a request", async () => {
+            await registry.addSession(validSession.session_uri,
+                true,
+                validSession.tutoring_price,
+                validSession.details, {
+                    from: tutor
+                })
+            // Rejects request if status is not changed
+            noSessions += 1;
+            let session = await registry.sessions(noSessions   - 1)
+            await registry.requestSession( noSessions - 1, validSession.details, {
+                from: student
+            })
+
+            noRequests += 1;
+            
+            await registry.rejectRequest(noRequests - 1, {
+                from: tutor
+            })
+            let request = await registry.requests(noRequests - 1)
+            assert(request.status, "Rejected", "Request status not changed")
+            
         })
 
         it("Can cancel a request", async () => {
             await registry.addSession(validSession.session_uri,
                 true,
-                0,
+                validSession.tutoring_price,
                 validSession.details, {
                     from: tutor
                 })
-            // Tests if user successfully cancels their bid status
+            // Tests if student successfully cancels their request status
             noSessions += 1;
             let session = await registry.sessions(noSessions   - 1)
-            await registry.addSession(103, noSessions - 1, {
+            await registry.requestSession( noSessions - 1, validSession.details, {
                 from: student
             })
             noRequests += 1;
-            await registry.acceptRequest(noRequests - 1, validSession.details, {
-                from: tutor
+            await registry.cancelRequest(noRequests - 1, {
+                from: student
             })
             let request = await registry.requests(noRequests - 1)
             assert(request.status, "Cancelled", "Bid status not changed")
         })
     })
 
-    // Tests if session status is correctly changed
+    // Tests if session status is correctly changed if tutor chooses to change tutoring price, or stop running the session
     context("Changing a sessions status", function () {
 
-        // Sell price should be changed and only the user can do so
-        it("Correctly changes sell price", async () => {
-            await registry.changeTutoringPrice(noSessions  - 1, 110, {
+        // Tutoring price should be changed and only the tutor can do so
+        it("Correctly changes tutoring price", async () => {
+            await registry.changeTutoringPrice(noSessions  - 1, 200, {
                 from: tutor
             })
             let session = await registry.sessions(noSessions   - 1)
-            assert(session.tutoring_price.toNumber(), 110, "Price not changed")
+            assert(session.tutoring_price.toNumber(), 200, "Price not changed")
         })
 
-        it("Reverts if unauthorized user modifies sell price", async () => {
+        it("Reverts if unauthorized user modifies tutoring price", async () => {
             await assertRevert(registry.changeTutoringPrice(noSessions - 1, 109, {
-                from: student
+                from: randomAddress
             }), EVMRevert)
         })
 
-        // Running status should be changed and only by the user
+        // Running status should be changed and only by the tutor
         it("Changes running status", async () => {
             await registry.changeRunningStatus(noSessions  - 1, {
                 from: tutor
@@ -328,12 +293,12 @@ contract("Thuto", (accounts) => {
 
         it("Reverts if unauthorized user changes status", async () => {
             await assertRevert(registry.changeRunningStatus(noSessions - 1, {
-                from: student
+                from: randomAddress
             }), EVMRevert)
         })
     })
 
-    // Get the correct number of session arrays, number of bids, bids to the session  and total number of sessions
+    // Get the correct number of session arrays, number of requests, requests to the session  and total number of sessions
     context("'Getter' functions work correctly", function () {
         it("Gets sessions correctly", async () => {
             let sessionArray = await registry.getSessions(tutor)
@@ -341,22 +306,10 @@ contract("Thuto", (accounts) => {
             assert(sessionArray.length == noSessions  , "Number of sessions not correct")
         })
 
-        it("Gets bids correctly", async () => {
+        it("Gets requests correctly", async () => {
             let requestArray = await registry.getRequests(student)
-
-            assert(requestArray.length == noRequests, "Number of bids not correct")
-        })
-
-        it("Gets session's bids correctly", async () => {
-            let sessionBidArray = await registry.getSessionBids(1)
-
-            let request_Id = sessionBidArray[0].toNumber()
-
-            request = await registry.requests(request_Id)
-            assert(ewquest.status, "Pending", "ewquest status not correct")
-            assert(ewquest.session_Id, 1, "session ID not correct")
-            assert(ewquest.student_Id, 3, "Bid owner ID not correct")
-
+            console.log(noRequests)
+            assert(requestArray.length == noRequests + 1, "Number of requests not correct")
         })
 
         it("Gets number of sessions correctly", async () => {

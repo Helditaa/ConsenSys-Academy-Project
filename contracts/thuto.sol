@@ -6,11 +6,9 @@ pragma solidity^0.5.0;
 /// @author Helda Mandlate
 
 /// @dev import contracts from openzeppelin related to ownable and ERC20, ERC721 tokens
-// import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
 
-//import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 //import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 //import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
 
@@ -21,33 +19,35 @@ contract thuto is ERC721Metadata {
         address owned_address;
         string profile_uri;
     }
-    /// @notice Creates an array of users that a registered
+    /// @notice Creates an array of users that are registered
     User[] public users;
 
     /// @notice The mapping below maps all users' addresses to their userID
     mapping (address => uint256) public userAddresses ;
 
     /// @notice Creates session defined type
-    enum sessionStatus {Pending, Accepted, Rejected, Sale, Cancelled}
+    enum sessionStatus {Pending, Accepted, Rejected, Cancelled}
 
     /// @notice Creates a struct for all requests for tutoring, one of the enum parameters, session Id and student Id
     struct Request {
         sessionStatus status;
         uint256 session_Id;
-        uint256 student_Id; /// @dev student of the request
+        uint256 student_Id;
     }
-    /// @notice Creates an array of bids that have been placed
+    /// @notice Creates an array of requests that have been placed
     Request[] public requests;
 
     /// @notice The mapping below maps all requesters' IDs to their studentId
     mapping(uint256 => uint256[]) public requestOwners;
 
-    /// @notice Creates a struct for all sessions
-    /// @param tutor_Id The array below will contain all bids received for that session
-    /// @param session_uri If the tutor has chosen the auction pricing structure, the below is TRUE
-    /// @param session_requests If the auction is still running, the below is TRUE, because the tutor can choose to stop the auction at any point
-    /// @param isRunning If both of the booleans above are FALSE, the price below is the flat tutoring rate
-    /// @param tutoring_price The value of the tutoring session
+    /**
+    @notice Creates a struct for all sessions
+    @param tutor_Id The Id of tutors
+    @param session_uri session URL
+    @param session_requests session requests
+    @param isRunning status of the session, True if session is currently running, false if otherwise
+    @param tutoring_price The value of the tutoring session
+    */
     struct Session {
         uint256 tutor_Id;
         string session_uri;
@@ -59,25 +59,29 @@ contract thuto is ERC721Metadata {
     /// @notice Creates an array of sessions for every tutoring session available
     Session[] public sessions;
 
-    /// @notice The mapping below will map the addresses of all the successful bidders' addresses to the ID of their owned users, session owners
+    /// @notice The mapping below will map the addresses of all the successful student addresses to the ID of their owned users, session owners
     mapping(uint256 => uint256[]) public sessionOwners;
 
-    /// @notice Creates a struct for licencing
-    /// @param student_Id of each tutoring session buyer
-    /// @param session_Id of the tutoring session being payed for
-    /// @param request_Id The bid's Id for the session
+    /**
+    @notice Creates a struct for licencing
+    @param student_Id of each tutoring session student
+    @param session_Id of the tutoring session being requested
+    @param request_Id The request Id for the session
+    */
     struct LessonDesign {
         uint256 student_Id;
         uint256 session_Id;
         uint256 request_Id;
     }
-    /// @notice Creates an array of accepted sessions
+
+    /// @notice Creates an array of accepted lessons
     LessonDesign[] public lessons;
     /// @notice Mapping of licence Id to get the licence owners
     mapping(uint256 => uint256[]) public sessionsOwners;
     /// @notice Mapping of licence Id to get the session Id
     mapping(uint256 => uint256[]) public sessionRequests;
 
+    // Setting up events
     event newSession(
         address indexed _from,
         string _session_uri,
@@ -122,7 +126,7 @@ contract thuto is ERC721Metadata {
     ERC20 daiContract;
     /// @dev The constructor below reserves tutor 0 for all unregistered users
     /// @param _daiContractAddress DAI contract address
-    constructor(address _daiContractAddress) public ERC721Metadata("UniCoin Licence", "UNIC"){
+    constructor(address _daiContractAddress) public ERC721Metadata("Thuto Licence", "THUTO"){
         users.push(User(address(0), ""));
         lessons.push(LessonDesign(0, 0, 0));
         daiContract = ERC20(_daiContractAddress);
@@ -174,31 +178,34 @@ contract thuto is ERC721Metadata {
     /// @dev lesson Id is added to list of requested sessions
     function requestSession(uint256 _session_Id, string memory _details) public {
         require(sessions[_session_Id].tutor_Id != 0, "Session not enlisted.");
+        require(sessions[_session_Id].isRunning, "Session is not running.");
         require(userAddresses[msg.sender] != 0, "Student address is not registered.");
         require(bytes(_details).length > 0, "Details should not be empty.");
+        uint256 _id = requests.push(Request(sessionStatus.Pending, _session_Id, userAddresses[msg.sender]));
+        sessions[_session_Id].session_requests.push(_id - 1);
+        requestOwners[userAddresses[msg.sender]].push(_id - 1);
 
         emit newRequest(msg.sender, _session_Id, _details);
         
     }
-
-    /// @param _id is the request Id
-    /// @notice This function allows the tutor to accept the requests
-    /// @dev parameters of licence design: student_Id, session id, request_Id
-    /// @notice This function allows the tutor to reject the requests
+    /**
+    @param _id is the request Id
+    @notice This function allows the tutor to accept the requests
+    @dev parameters of licence design: student_Id, session id, request_Id
+    @notice This function allows the tutor to reject the requests
+    */
     function acceptRequest(uint256 _id) public {
         uint256 _session_Id = requests[_id].session_Id;
         require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
         require(sessions[_session_Id].isRunning, "Session is not running");
         requests[_id].status = sessionStatus.Accepted;
 
-        //uint256 _Id = requests.push(Request(sessionStatus.Sale, _session_Id, userAddresses[msg.sender])) - 1;
 
         uint256 _lesson_Id = lessons.push(LessonDesign(requests[_id].student_Id, _session_Id, _id));
         requestOwners[requests[_id].student_Id].push(_lesson_Id);
         sessionRequests[_session_Id].push(_lesson_Id);
-        // _mint(users[Requests[_id].student_Id ].owned_address, _lesson_Id);
-
-        // emit acceptedRequest(msg.sender,_id);
+        _mint(users[requests[_id].student_Id].owned_address, _lesson_Id);
+        emit acceptedRequest(msg.sender,_id);
     }
 
     /// @notice This function allows the tutor to reject the bids
@@ -212,12 +219,15 @@ contract thuto is ERC721Metadata {
         emit rejectedRequest(msg.sender,_id);
     }
 
-    /// @notice This function allows the tutor to cancel the bids
+    /// @notice This function allows the student to cancel the requests
     /// @param _id is the bid Id
     function cancelRequest(uint256 _id) public {
-        uint256 _session_Id = requests[_id].session_Id;
-        require(userAddresses[msg.sender] == sessions[_session_Id].tutor_Id, "User not the tutor of this session");
-        require(sessions[_session_Id].isRunning, "Session not running");
+        //uint256 _session_Id = requests[_id].session_Id;
+        // uint256 _session_Id = requests[_id].session_Id;
+        uint256 _request_Id = requests[_id].student_Id;
+
+        //uint256 _request_Id = sessions[_id].request_Id;
+        require(userAddresses[msg.sender] == requests[_request_Id].student_Id, "Student not the owner of this request");
         requests[_id].status = sessionStatus.Cancelled;
 
         emit cancelledRequest(msg.sender,_id);
