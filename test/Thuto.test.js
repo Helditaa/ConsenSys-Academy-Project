@@ -24,7 +24,7 @@ require("chai")
     .should();
 
 // Contracts
-const Thuto = artifacts.require("./ThutoNew.sol");
+const Thuto = artifacts.require("./Thuto.sol");
 const Erc20 = artifacts.require("./ERC20.sol");
 
 contract("Thuto", (accounts) => {
@@ -99,7 +99,7 @@ contract("Thuto", (accounts) => {
             await registry.addSession(validSession.session_uri,
                 validSession.isRunning,
                 validSession.tutoring_price,
-                validSession.details {
+                validSession.details, {
                     from: tutor
                 })
             noSessions += 1;
@@ -110,7 +110,7 @@ contract("Thuto", (accounts) => {
             assert(session.session_requests == validSession.session_requests, "isAuction not set")
             assert(session.isRunning == validSession.isRunning, "isRunning not set")
             assert(session.tutoring_price.toNumber(), validSession.tutoring_price, "sellPrice not set")
-            assert(session.details.toNumber(), validSession.details, "sellPrice not set")
+            assert(session.details, validSession.details, "sellPrice not set")
 
             let allsessionInfo = await registry.getSession(noSessions  - 1)
             // console.log("HERE")
