@@ -3,6 +3,8 @@
 ## What we do?
 Thuto is a decentralized platform that serves to connect students to tutors and vice-versa, using a smart contract to provide the interaction between parties, with no centralized data storage. Tutors can add sessions, if they are willing to provide tutoring to students, simiarly, they can choose at anytime to stop running sessions or change their tutoring price. Students are allowed to request to have a session with a specific tutor, add their prefered tutoring options. Both students and tutors can cancel, reject sessions, respectively if they wish to no longer have it. And tutors can accept requests. The payment is made in person, however, students hold Non-Fungible Tokens to attest that theyy have indeep received tutoring in the platform.
 
+The link to Thuto App Demo is [here](https://www.figma.com/file/yvXw0viPrnAslWhYz3GEZt/Consensys?node-id=35%3A4688)
+
 ## How to set it up?
 
 To run the project:
