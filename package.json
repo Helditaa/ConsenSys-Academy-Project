@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "web3": "^1.2.2"
+  },
+  "scripts": {
+    "dev": "lite-server"
+  },
+  "devDependencies": {
+    "lite-server": "^2.5.4"
+  }
+}

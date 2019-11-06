@@ -1,0 +1,19 @@
+[
+  {
+    "id": 0,
+    "name": "Figma",
+    "subject": "Economics",
+    "details": "Mondays at 2pm until 4pm",
+    "tutor": "no",
+    "price": null
+  },
+  {
+    "id": 1,
+    "name": "Albert",
+    "subject": "Economics",
+    "details": "Everyday between 1pm and 5pm",
+    "tutor": "no",
+    "price": 150
+
+  }
+]
