@@ -34,3 +34,20 @@ Run
 ```
 $truffle test
 ```
+
+## Local server set up
+
+Install yarn and add lite-server
+
+```
+$brew install yarn
+$yarn add lite-server --dev
+```
+
+Now run
+
+```
+$npm run dev
+```
+
+The front ent is launched, and you should see metamask pop up.
