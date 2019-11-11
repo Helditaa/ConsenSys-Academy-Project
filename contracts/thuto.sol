@@ -6,8 +6,10 @@ pragma solidity^0.5.0;
 /// @author Helda Mandlate
 
 /// @dev import contracts from openzeppelin related to ownable and ERC20, ERC721 tokens
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Metadata.sol";
+//import "./ERC20.sol";
+//import "./IERC20.sol";
 
 //import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 //import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";

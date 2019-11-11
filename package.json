@@ -1,9 +1,32 @@
 {
-  "dependencies": {
-    "web3": "^1.2.2"
+  "name": "thuto.json",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
   },
   "scripts": {
+    "test": "truffle test",
     "dev": "lite-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ConsenSys-Academy-Project"
+  },
+  "author": "Helda Mandlate",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.4.0",
+    "bignumber.js": "^9.0.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^3.0.0",
+    "ethereumjs-abi": "^0.6.8",
+    "ethjs-abi": "^0.2.1",
+    "lodash": "^4.17.15",
+    "pify": "^4.0.1",
+    "web3-utils": "^1.2.2"
   },
   "devDependencies": {
     "lite-server": "^2.5.4"

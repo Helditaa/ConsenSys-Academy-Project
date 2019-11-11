@@ -14,7 +14,8 @@ To run the project:
 3) Install [Homebrew](http://osxdaily.com/2018/03/07/how-install-homebrew-mac-os/)
 4) Install [NPM & Node](https://treehouse.github.io/installation-guides/mac/node-mac.html)
 5) Install [Truffle](https://www.trufflesuite.com/docs/truffle/getting-started/installation)
-6) Install [Mocha](https://puppet.com/docs/pipelines-for-apps/enterprise/application-nodejs-mocha.html) dependency module
+6) Install dependencies (` npm install `)
+
 
 
 ## Smart Contract
@@ -36,13 +37,6 @@ $truffle test
 ```
 
 ## Local server set up
-
-Install yarn and add lite-server
-
-```
-$brew install yarn
-$yarn add lite-server --dev
-```
 
 Now run
 
