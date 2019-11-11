@@ -14,7 +14,12 @@ To run the project:
 3) Install [Homebrew](http://osxdaily.com/2018/03/07/how-install-homebrew-mac-os/)
 4) Install [NPM & Node](https://treehouse.github.io/installation-guides/mac/node-mac.html)
 5) Install [Truffle](https://www.trufflesuite.com/docs/truffle/getting-started/installation)
-6) Install dependencies (` npm install `)
+
+Once everyting is set:
+Run the code below to install dependencies
+```
+npm install
+```
 
 
 
@@ -26,14 +31,14 @@ Ensure that Ganache is opened and the port 8545 is selected.
 
 Run
 ```
-$truffle compile
+truffle compile
 ```
 
 ### Test Contract
 
 Run
 ```
-$truffle test
+truffle test
 ```
 
 ## Local server set up
@@ -41,7 +46,7 @@ $truffle test
 Now run
 
 ```
-$npm run dev
+npm run dev
 ```
 
 The front ent is launched, and you should see metamask pop up.
