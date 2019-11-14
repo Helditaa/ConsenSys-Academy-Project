@@ -306,12 +306,6 @@ contract("Thuto", (accounts) => {
             assert(sessionArray.length == noSessions  , "Number of sessions not correct")
         })
 
-        it("Gets requests correctly", async () => {
-            let requestArray = await registry.getRequests(student)
-            console.log(noRequests)
-            assert(requestArray.length == noRequests + 1, "Number of requests not correct")
-        })
-
         it("Gets number of sessions correctly", async () => {
             let sessionLength = await registry.getSessionLength()
             // Ensure that number of sessions is equal to total number of sessions

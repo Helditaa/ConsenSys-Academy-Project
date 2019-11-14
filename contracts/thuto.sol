@@ -8,14 +8,14 @@ pragma solidity^0.5.0;
 /// @dev import contracts from openzeppelin related to ownable and ERC20, ERC721 tokens
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Metadata.sol";
-//import "./ERC20.sol";
-//import "./IERC20.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
+
 
 //import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 //import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
 
 /// @notice contract begins here
-contract thuto is ERC721Metadata {
+contract thuto is ERC721Metadata, Ownable {
     /// @notice Creates a struct for users of the plaform, needs their Ethereum address and profile URL
     struct User {
         address owned_address;
@@ -312,4 +312,31 @@ contract thuto is ERC721Metadata {
         _lesson.session_Id,
         _lesson.request_Id);
     }
+
+
+    bool public stopped = false;
+
+
+    modifier haltInEmergency() {
+        if ( !stopped) _;
+    }
+
+    modifier enableInEmergency() {
+        if ( stopped) _;
+    }
+
+    function toggleContractStopped() public onlyOwner {
+        stopped = !stopped;
+    }
+
+    function registerUserFailed() public {
+
+    }
+
+    function userListNotChanged() public {
+
+    }
+
+
+
 }
