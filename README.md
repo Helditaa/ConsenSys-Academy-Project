@@ -13,9 +13,8 @@ To run the project:
 2) Download [Ganache](https://www.trufflesuite.com/ganache)
 3) Install [Homebrew](http://osxdaily.com/2018/03/07/how-install-homebrew-mac-os/)
 4) Install [NPM & Node](https://treehouse.github.io/installation-guides/mac/node-mac.html)
-5) Install [Truffle](https://www.trufflesuite.com/docs/truffle/getting-started/installation)
 
-Once everyting is set:
+Once everything is set:
 Run the code below to install dependencies
 ```
 npm install
