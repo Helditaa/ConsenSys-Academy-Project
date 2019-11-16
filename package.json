@@ -1,20 +1,16 @@
 {
-  "name": "thuto.json",
+  "name": "pet-shop",
   "version": "1.0.0",
   "description": "",
-  "main": "truffle-config.js",
+  "main": "truffle.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "lite-server"
+    "dev": "lite-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "ConsenSys-Academy-Project"
-  },
-  "author": "Helda Mandlate",
+  "author": "",
   "license": "ISC",
   "dependencies": {
     "@openzeppelin/contracts": "^2.4.0",

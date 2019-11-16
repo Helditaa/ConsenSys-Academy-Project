@@ -24,6 +24,8 @@ contract thuto is ERC721Metadata, Ownable {
     /// @notice Creates an array of users that are registered
     User[] public users;
 
+    address[] registeredUsers;
+
     /// @notice The mapping below maps all users' addresses to their userID
     mapping (address => uint256) public userAddresses ;
 
@@ -305,12 +307,19 @@ contract thuto is ERC721Metadata, Ownable {
         return requestOwners[_userNumber];
     }
 
+    /// @return get the lessons information per lesson 'purchased' id
+    /// @param _lessonId the lesson id
     function getLessons(uint256 _lessonId) public view returns(uint256, uint256, uint256){
         LessonDesign memory _lesson = lessons[_lessonId];
         return (
         _lesson.student_Id,
         _lesson.session_Id,
         _lesson.request_Id);
+    }
+
+    /// @return get the array of registered users on the platform
+    function getUsers() public view returns(address[] memory) {
+        return registeredUsers;
     }
 
 
@@ -325,18 +334,20 @@ contract thuto is ERC721Metadata, Ownable {
         if ( stopped) _;
     }
 
+    /// @return onlyowner can determine status
     function toggleContractStopped() public onlyOwner {
         stopped = !stopped;
     }
 
-    function registerUserFailed() public {
+    /// @return tell user that registration failed
+    function registerUserFailed() public returns (string memory) {
+        return "Failed Registration";
 
     }
 
-    function userListNotChanged() public {
-
+    /// @return shows the user list
+    function userListNotChanged() public view returns (address[] memory) {
+        return registeredUsers;
     }
-
-
 
 }

@@ -4,6 +4,12 @@ Token Owner Address: 0x075bcca4CCf225df6422f8c1f779e2Aa54E0Df52
 Tutor Address: 0xb1d4799135245e6a2c3c35ce80DE7a4326C5750e
 Student Address: 0x20F4DCaC68153E060FCc6B3f093ab872eDA19022
 
+For localhost 8545:
+
+Address: 0x99A1687562ab2928356C53efEEf45a43504f290d
+
 Metamask testnet used was Ropsten (id 3):
 
 Address: 0x99A1687562ab2928356C53efEEf45a43504f290d
+
+Project is on infura
